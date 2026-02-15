@@ -1,5 +1,5 @@
 """\
-SSH Tunnel VPN - Python + C 版
+SSH Tunnel VPN - 纯 Python 版
 
 支持两种运行模式:
   1) GUI 窗口模式(默认): python main.py
@@ -27,9 +27,9 @@ import threading
 import time
 from datetime import datetime
 
-from config import ServerConfig, load_config, save_config, load_window_geometry, save_window_geometry
-from proxy_settings import clear_system_proxy, set_system_proxy
-from ssh_tunnel import SshTunnelManager
+from .config import ServerConfig, load_config, save_config, load_window_geometry, save_window_geometry
+from .proxy_settings import clear_system_proxy, set_system_proxy
+from .ssh_tunnel import SshTunnelManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class SSHTunnelApp:
         ctk.set_default_color_theme("blue")
 
         self.root = ctk.CTk()
-        self.root.title("SSH Tunnel VPN  (Python + C)")
+        self.root.title("SSH Tunnel VPN")
         saved_geo = load_window_geometry()
         self.root.geometry(saved_geo if saved_geo else "960x520")
         self.root.minsize(900, 460)
@@ -1088,7 +1088,7 @@ def _run_uninstall():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="SSH Tunnel VPN — 安全加密隧道 (Python + C)",
+        description="SSH Tunnel VPN — 安全加密隧道",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="mode")

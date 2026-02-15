@@ -11,8 +11,8 @@ import customtkinter
 ctk_path = os.path.dirname(customtkinter.__file__)
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
+    ['src/ssh_tunnel_vpn/main.py'],
+    pathex=['src'],
     binaries=[],
     datas=[
         (ctk_path, 'customtkinter'),   # CustomTkinter 主题/JSON 资源

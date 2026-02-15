@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssh-tunnel-vpn"
+version = "1.0.0"
+description = "SSH 隧道 VPN 工具，支持 SOCKS5 + HTTP 代理、跳板机、私钥登录、Windows 系统代理"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "JoursBleu"},
+]
+keywords = ["ssh", "tunnel", "vpn", "socks5", "proxy"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Internet :: Proxy Servers",
+    "Topic :: System :: Networking",
+]
+dependencies = [
+    "paramiko>=3.4.0",
+    "PySocks>=1.7.1",
+    "customtkinter>=5.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+ssh-tunnel = "ssh_tunnel_vpn.main:main"
+
+[project.gui-scripts]
+ssh-tunnel-gui = "ssh_tunnel_vpn.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

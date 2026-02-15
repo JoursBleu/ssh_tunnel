@@ -17,8 +17,7 @@ from typing import Optional, Callable
 
 import paramiko
 
-from c_relay import c_engine
-from http_proxy import HttpProxyServer
+from .http_proxy import HttpProxyServer
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +31,6 @@ class Socks5Server:
         self.server_socket: Optional[socket.socket] = None
         self.running = False
         self._thread: Optional[threading.Thread] = None
-        self._use_c_engine = c_engine.available
-
-        if self._use_c_engine:
-            logger.info("使用C引擎加速数据中继")
-        else:
-            logger.info("使用Python数据中继")
 
     def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,15 +125,7 @@ class Socks5Server:
             client.sendall(reply)
 
             # 数据中继
-            if self._use_c_engine:
-                # 使用C引擎高性能中继
-                client_fd = client.fileno()
-                channel_fd = channel.fileno()
-                if not c_engine.start_relay(client_fd, channel_fd, 300):
-                    # 回退到Python实现
-                    self._relay_python(client, channel)
-            else:
-                self._relay_python(client, channel)
+            self._relay_python(client, channel)
 
         except Exception as e:
             logger.debug(f"SOCKS5处理错误: {e}")
@@ -417,8 +402,8 @@ class SshTunnelManager:
             self.socks_server = Socks5Server(transport, socks_port)
             self.socks_server.start()
 
-            engine_name = "C引擎" if c_engine.available else "Python"
-            self._log(f"SOCKS5代理已启动 ✓ ({engine_name}加速)")
+            engine_name = "Python"
+            self._log(f"SOCKS5代理已启动 ✓ ({engine_name})")
             self._log(f"SOCKS5 地址: 127.0.0.1:{socks_port}")
 
             # 启动HTTP代理（将HTTP/HTTPS流量通过SOCKS5转发）
@@ -500,8 +485,6 @@ class SshTunnelManager:
 
     def get_stats(self) -> dict:
         """获取流量统计"""
-        if c_engine.available:
-            return c_engine.get_stats()
         return {"bytes_up": 0, "bytes_down": 0, "active": 0, "total": 0}
 
     def _start_monitor(self):
