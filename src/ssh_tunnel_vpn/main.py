@@ -1062,7 +1062,7 @@ def _run_uninstall():
         print(f"      跳过（{e}）")
 
     # 2. 删除配置文件
-    print("[2/3] 删除配置文件 ...")
+    print("[2/4] 删除配置文件 ...")
     config_dir = Path(os.environ.get("APPDATA", Path.home() / ".config")) / "SSHTunnelVPN"
     if config_dir.exists():
         shutil.rmtree(config_dir, ignore_errors=True)
@@ -1070,8 +1070,12 @@ def _run_uninstall():
     else:
         print("      未找到配置目录，跳过")
 
-    # 3. 清理 PyInstaller 临时目录
-    print("[3/3] 清理临时文件 ...")
+    # 3. 删除快捷方式
+    print("[3/4] 删除快捷方式 ...")
+    _remove_shortcuts()
+
+    # 4. 清理临时目录
+    print("[4/4] 清理临时文件 ...")
     tmp = Path(tempfile.gettempdir())
     count = 0
     for d in tmp.glob("_MEI*"):
@@ -1086,6 +1090,78 @@ def _run_uninstall():
     print("=" * 40)
 
 
+def _create_shortcuts():
+    """在桌面和开始菜单创建快捷方式"""
+    if sys.platform != "win32":
+        print("快捷方式仅支持 Windows")
+        return
+
+    # 找到 ssh-tunnel.exe 入口脚本路径
+    scripts_dir = Path(sys.executable).parent / "Scripts"
+    exe_path = scripts_dir / "ssh-tunnel-gui.exe"
+    if not exe_path.exists():
+        exe_path = scripts_dir / "ssh-tunnel.exe"
+    if not exe_path.exists():
+        print(f"❌ 未找到入口脚本，请确认已 pip install 安装")
+        return
+
+    exe_str = str(exe_path)
+    name = "SSH Tunnel VPN"
+
+    # 桌面路径
+    desktop = Path(os.environ.get("USERPROFILE", "~")) / "Desktop"
+    # 开始菜单路径
+    start_menu = Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs"
+
+    ps_script = '''
+$WshShell = New-Object -ComObject WScript.Shell
+$targets = @(
+    @{{ Path = "{desktop}\\{name}.lnk"; Target = "{exe}" }},
+    @{{ Path = "{startmenu}\\{name}.lnk"; Target = "{exe}" }}
+)
+foreach ($t in $targets) {{
+    $shortcut = $WshShell.CreateShortcut($t.Path)
+    $shortcut.TargetPath = $t.Target
+    $shortcut.Description = "SSH Tunnel VPN - 安全加密隧道"
+    $shortcut.Save()
+    Write-Host "  ✓ $($t.Path)"
+}}
+'''.format(
+        desktop=str(desktop).replace("\\", "\\\\"),
+        startmenu=str(start_menu).replace("\\", "\\\\"),
+        name=name,
+        exe=exe_str.replace("\\", "\\\\"),
+    )
+
+    print("=" * 40)
+    print("  创建快捷方式")
+    print("=" * 40)
+
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", ps_script],
+        capture_output=True, text=True,
+    )
+    if result.stdout:
+        print(result.stdout.strip())
+    if result.returncode != 0 and result.stderr:
+        print(f"❌ {result.stderr.strip()}")
+    else:
+        print("\n  快捷方式创建完成！")
+    print("=" * 40)
+
+
+def _remove_shortcuts():
+    """删除桌面和开始菜单的快捷方式"""
+    name = "SSH Tunnel VPN"
+    desktop = Path(os.environ.get("USERPROFILE", "~")) / "Desktop" / f"{name}.lnk"
+    start_menu = Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / f"{name}.lnk"
+
+    for p in [desktop, start_menu]:
+        if p.exists():
+            p.unlink()
+            print(f"      已删除 {p}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SSH Tunnel VPN — 安全加密隧道",
@@ -1095,7 +1171,8 @@ def main():
 
     sub.add_parser("gui", help="图形界面模式 (默认)")
 
-    sub.add_parser("uninstall", help="卸载：清理配置、还原系统代理")
+    sub.add_parser("install", help="创建桌面和开始菜单快捷方式")
+    sub.add_parser("uninstall", help="卸载：清理配置、还原系统代理、删除快捷方式")
 
     cli_p = sub.add_parser("cli", help="命令行模式")
     cli_p.add_argument("-H", "--host", type=str, default=None, help="服务器 IP / 域名")
@@ -1123,6 +1200,10 @@ def main():
     if args.mode is None or args.mode == "gui":
         app = SSHTunnelApp()
         app.run()
+        return
+
+    if args.mode == "install":
+        _create_shortcuts()
         return
 
     if args.mode == "uninstall":
