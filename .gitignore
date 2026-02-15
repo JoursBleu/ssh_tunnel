@@ -25,16 +25,7 @@ env/
 *.swp
 *.swo
 
-# Config (contains credentials)
-*.json
-
 # OS
 Thumbs.db
 Desktop.ini
 .DS_Store
-
-# C build artifacts
-*.dll
-*.exe
-*.o
-*.obj
