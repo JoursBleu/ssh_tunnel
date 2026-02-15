@@ -1098,9 +1098,10 @@ def _create_shortcuts():
 
     # 找到 ssh-tunnel.exe 入口脚本路径
     scripts_dir = Path(sys.executable).parent / "Scripts"
-    exe_path = scripts_dir / "ssh-tunnel-gui.exe"
+    exe_path = scripts_dir / "ssh-tunnel.exe"
     if not exe_path.exists():
-        exe_path = scripts_dir / "ssh-tunnel.exe"
+        # 可能安装在用户 Scripts 目录
+        exe_path = Path(sys.executable).parent / "ssh-tunnel.exe"
     if not exe_path.exists():
         print(f"❌ 未找到入口脚本，请确认已 pip install 安装")
         return
@@ -1198,8 +1199,11 @@ def main():
     args = parser.parse_args()
 
     if args.mode is None or args.mode == "gui":
-        app = SSHTunnelApp()
-        app.run()
+        try:
+            app = SSHTunnelApp()
+            app.run()
+        except Exception as e:
+            _fatal_error(e)
         return
 
     if args.mode == "install":
@@ -1281,5 +1285,40 @@ def main():
     cli.start()
 
 
+def _error_log_path() -> Path:
+    """错误日志路径"""
+    return Path(os.environ.get("APPDATA", Path.home() / ".config")) / "SSHTunnelVPN" / "error.log"
+
+
+def _fatal_error(exc: Exception):
+    """记录致命错误到日志文件，并尝试弹窗提示"""
+    import traceback
+    log_path = _error_log_path()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    msg = "".join(tb)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"\n{'=' * 60}\n")
+        f.write(f"{datetime.now().isoformat()}\n")
+        f.write(msg)
+
+    # 尝试弹窗提示（即使在 pythonw 下也能工作）
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror(
+            "SSH Tunnel VPN - 启动失败",
+            f"错误: {exc}\n\n详细日志: {log_path}",
+        )
+        root.destroy()
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        _fatal_error(e)

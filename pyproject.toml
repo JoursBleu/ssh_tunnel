@@ -33,8 +33,5 @@ dev = [
 [project.scripts]
 ssh-tunnel = "ssh_tunnel_vpn.main:main"
 
-[project.gui-scripts]
-ssh-tunnel-gui = "ssh_tunnel_vpn.main:main"
-
 [tool.setuptools.packages.find]
 where = ["src"]
