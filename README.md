@@ -1,6 +1,6 @@
-# SSH Tunnel VPN — Python + C 实现
+# SSH Tunnel VPN
 
-一个高性能的 SSH 隧道 VPN 工具，Python 负责 SSH 连接和 GUI，C 负责网络数据高速中继。
+一个 SSH 隧道 VPN 工具，支持 GUI 和 CLI 双模式，提供 SOCKS5 + HTTP/HTTPS 代理、跳板机、私钥登录、Windows 系统代理自动设置。
 
 ## 架构
 
@@ -9,16 +9,13 @@
 │              CustomTkinter GUI              │  ← Python
 │              (main.py)                      │
 ├─────────────────────────────────────────────┤
-│        SSH 隧道管理 + SOCKS5 代理           │  ← Python (Paramiko)
+│        SSH 隧道管理 + SOCKS5 代理           │  ← Paramiko
 │        (ssh_tunnel.py)                      │
 ├─────────────────────────────────────────────┤
 │    HTTP/HTTPS 代理 → SOCKS5 转发            │  ← Python
 │    (http_proxy.py)                          │
 ├─────────────────────────────────────────────┤
-│     C 高性能数据中继引擎 (可选)             │  ← C (ctypes 调用)
-│     tun_relay.dll / socks5_proxy.exe        │
-├─────────────────────────────────────────────┤
-│       Windows 系统代理设置                  │  ← Python (winreg)
+│       Windows 系统代理设置                  │  ← winreg
 │       (proxy_settings.py)                   │
 └─────────────────────────────────────────────┘
 ```
@@ -30,15 +27,10 @@ ssh_tunnel_win/
 ├── main.py              # 入口 (GUI 窗口 + CLI 命令行 双模式)
 ├── ssh_tunnel.py        # SSH隧道 + SOCKS5代理服务器
 ├── http_proxy.py        # HTTP/HTTPS 代理 (通过 SOCKS5 转发)
-├── c_relay.py           # C引擎 Python 绑定 (ctypes)
 ├── proxy_settings.py    # Windows 系统代理 (注册表)
 ├── config.py            # 配置管理 (JSON)
 ├── requirements.txt     # Python 依赖
-├── build.bat            # C引擎编译脚本
 ├── run.bat              # 一键启动
-├── csrc/
-│   ├── socks5_proxy.c   # 独立 SOCKS5 代理 (C)
-│   └── tun_relay.c      # 数据中继共享库 (C → DLL)
 └── README.md
 ```
 
@@ -111,16 +103,6 @@ CLI 模式支持的参数：
 - GUI 可在“使用 SSH 跳板机”区域填写跳板机参数。
 - CLI 只要设置 `--jump-host`，即自动进入跳板机模式。
 
-### C 引擎加速（可选）
-
-```bash
-# 编译 C 引擎后再运行，性能提升 10-50x
-build.bat
-python main.py          # 自动检测并启用 C 引擎
-```
-
-不编译也完全可用，所有功能通过 Python 实现。
-
 ## 代理工作原理
 
 ```
@@ -145,35 +127,6 @@ python main.py          # 自动检测并启用 C 引擎
 - **HTTP 代理** (端口 10801): 接收浏览器的 HTTP/HTTPS 请求，通过 SOCKS5 转发
 - **SOCKS5 代理** (端口 10800): 通过 SSH direct-tcpip 通道连接目标
 - **系统代理**: 自动设置 Windows 注册表，HTTP/HTTPS/SOCKS 全协议覆盖
-
-## C 组件说明
-
-### tun_relay.dll — 数据中继引擎
-
-通过 `ctypes` 被 Python 调用，替代 Python 的 `select` + `recv/send` 循环：
-- 多线程并发中继
-- 64KB 缓冲区，零拷贝转发
-- 内置流量统计（上传/下载字节数、活跃连接数）
-
-### socks5_proxy.exe — 独立 SOCKS5 代理
-
-可单独运行的高性能代理，支持上游 SOCKS5 链式转发：
-
-```bash
-# 直连模式
-socks5_proxy.exe -l 1080
-
-# 通过 SSH 隧道转发
-socks5_proxy.exe -l 1080 -u 127.0.0.1:10800
-```
-
-## 编译要求
-
-任选其一：
-- **MinGW-w64** (gcc)：`gcc -shared -O2 -o tun_relay.dll csrc/tun_relay.c -lws2_32`
-- **MSVC** (cl)：`cl /LD /O2 csrc/tun_relay.c /link ws2_32.lib`
-
-或直接运行 `build.bat` 自动检测编译器。
 
 ## 服务器端配置
 

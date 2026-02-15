@@ -27,7 +27,6 @@ import threading
 import time
 from datetime import datetime
 
-from c_relay import c_engine
 from config import ServerConfig, load_config, save_config, load_window_geometry, save_window_geometry
 from proxy_settings import clear_system_proxy, set_system_proxy
 from ssh_tunnel import SshTunnelManager
@@ -161,10 +160,9 @@ class SSHTunnelApp:
             text_color="white",
             anchor="w",
         ).grid(row=0, column=0, padx=8, pady=(2, 0), sticky="w")
-        engine_text = "C 引擎加速" if c_engine.available else "Python 引擎"
         ctk.CTkLabel(
             banner,
-            text=f"安全加密隧道 · {engine_text}",
+            text="安全加密隧道",
             font=ctk.CTkFont(size=11),
             text_color="#93c5fd",
             anchor="w",
@@ -916,9 +914,8 @@ class SSHTunnelCLI:
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
 
-        engine_tag = "[C引擎]" if c_engine.available else "[Python引擎]"
         print(f"\n{'=' * 56}")
-        print(f"  SSH Tunnel VPN  — 命令行模式  {engine_tag}")
+        print(f"  SSH Tunnel VPN  — 命令行模式")
         print(f"{'=' * 56}")
         print(f"  服务器:    {self.host}:{self.port}")
         print(f"  用户名:    {self.username}")
