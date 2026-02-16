@@ -88,6 +88,23 @@ class SSHTunnelApp:
         self._apply_auth_ui()
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
+        # 首次启动时自动创建桌面和开始菜单快捷方式
+        self._auto_create_shortcuts()
+
+    def _auto_create_shortcuts(self):
+        """首次运行时自动创建快捷方式，已存在则跳过"""
+        if sys.platform != "win32":
+            return
+        marker = Path(os.environ.get("APPDATA", Path.home() / ".config")) / "SSHTunnelVPN" / ".shortcuts_created"
+        if marker.exists():
+            return
+        try:
+            _create_shortcuts()
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text("1")
+        except Exception:
+            pass  # 静默失败，不影响主功能
+
     def run(self):
         self.root.mainloop()
 
@@ -1152,12 +1169,13 @@ foreach ($t in $targets) {{
 
 
 def _remove_shortcuts():
-    """删除桌面和开始菜单的快捷方式"""
+    """删除桌面和开始菜单的快捷方式及标记文件"""
     name = "SSH Tunnel VPN"
     desktop = Path(os.environ.get("USERPROFILE", "~")) / "Desktop" / f"{name}.lnk"
     start_menu = Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / f"{name}.lnk"
+    marker = Path(os.environ.get("APPDATA", Path.home() / ".config")) / "SSHTunnelVPN" / ".shortcuts_created"
 
-    for p in [desktop, start_menu]:
+    for p in [desktop, start_menu, marker]:
         if p.exists():
             p.unlink()
             print(f"      已删除 {p}")
